@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
     <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="author" content="Anastasia The Frog">
+
         <title>Letter</title>
+        <link rel="icon" href="favicon.ico">
+
         <style>
             * {
-                padding: 0;
                 margin: 0;
+                padding: 0;
             }
 
             body {
-                background-color: #333;
+                background-color: #101010;
             }
 
             #screen {
@@ -27,8 +33,10 @@
             attribute vec3 vertex;
             
             uniform vec2 trans;
-            uniform vec2 res;
-            uniform float t;
+            uniform highp vec2 res;
+            uniform float utime;
+
+            varying vec2 frag_pos;
 
             mat4 rotation(vec3 axis, float angle) {
                 axis = normalize(axis);
@@ -48,9 +56,18 @@
                 return (rotation(axis, angle) * vec4(v, 1.0)).xyz;
             }
 
+            float distance_origin(vec2 p){
+                return sqrt(p.x * p.x + p.y * p.y);
+            }
+
             const float TAU = 6.28318530718;
 
             void main(){
+                // shift t by position
+                float dist_to_top_corner = distance_origin(floor(trans / 100.0) * 100.0) / 1000.0;
+
+                float t = min(max(utime - dist_to_top_corner, 0.0), 1.0);
+
                 // initialize position to vertex
                 vec3 pos = vertex;
                 
@@ -61,6 +78,8 @@
                 // translate with offset
                 pos += vec3(trans + vec2(50.0), 0);
 
+                frag_pos = pos.xy;
+
                 // clip to screen space and save
                 vec2 clip = ((pos.xy / res) * 2.0 - 1.0) * vec2(1.0, -1.0);
                 gl_Position = vec4(clip, 0.0, 1.0);
@@ -70,8 +89,18 @@
         <script type="glsl" id="panel_fragment">
             precision mediump float;
 
+            uniform highp vec2 res;
+
+            varying vec2 frag_pos;
+
             void main(){
-                gl_FragColor = vec4(1.0, 0.0, 0.5, 1.0);
+                vec2 pos = frag_pos / res;
+
+                if(gl_FrontFacing){
+                    gl_FragColor = vec4(vec3(0.0392156862745098), 1.0);
+                } else {
+                    gl_FragColor = vec4(0.0, pos.x, pos.y, 1.0);
+                }
             }
         </script>
 

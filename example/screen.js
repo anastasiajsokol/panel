@@ -36,18 +36,6 @@ function create_attribute_buffer(gl, data, program, name, size, stride = 0, offs
     return buffer;
 }
 
-function panel_vertice(x, y){
-    return [
-        x, y,
-        x + 100, y,
-        x, y + 100,
-
-        x + 100, y,
-        x + 100, y + 100,
-        x, y + 100
-    ];
-}
-
 function check(obj, name){
     if(!obj){ throw Error("Failed to load: {" + name + "}"); }
     return obj;
@@ -63,7 +51,7 @@ window.addEventListener("load", () => {
     const gl = check(screen.getContext("webgl"), "gl");
 
     gl.viewport(0, 0, w, h);
-    gl.clearColor(33 / 255, 33 / 255, 33 / 255, 1.0);
+    gl.clearColor(10 / 255, 10 / 255, 10 / 255, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // setup webgl context
@@ -75,39 +63,48 @@ window.addEventListener("load", () => {
 
     const shader = check(create_program(gl, vertex_shader, fragment_shader), "shader");
 
-    const vertex_buffer = create_attribute_buffer(gl, [
-        -50, -50,
+    create_attribute_buffer(gl, [
         50, -50,
+        -50, -50,
         -50, 50,
         
-        50, -50,
         50, 50,
+        50, -50,
         -50, 50
     ], shader, "vertex", 2);
 
     const trans = gl.getUniformLocation(shader, "trans");
     const res = gl.getUniformLocation(shader, "res");
-    const utime = gl.getUniformLocation(shader, "t");
+    const utime = gl.getUniformLocation(shader, "utime");
 
     // panel offsets
-    let positions = [
-        [0, 0],
-        [100, 0],
-    ];
+    let positions = [];
+
+    function gen_positions(){
+        for(let x = 0; x < w; x += 100){
+            for(let y = 0; y < h; y += 100){
+                positions.push([x, y]);
+            }
+        }
+    }
+
+    gen_positions();
     
     // render loop
     const time = {
         time: 0,
-        dt: 0
+        dt: 0,
+        epoch: undefined, // set to undefined to stay at zero, set to zero to restart
     };
 
     function render(timestamp){
         time.dt = (timestamp - time.time) * 0.001;
+        time.epoch += time.dt;
         time.time = timestamp;
 
         gl.useProgram(shader);
         gl.uniform2f(res, w, h);
-        gl.uniform1f(utime, time.time / 2000); // animate over 2 seconds
+        gl.uniform1f(utime, (time.epoch || 0) / 2); // animate for 2 seconds
 
         for(const pos of positions){
             gl.uniform2f(trans, ...pos);
@@ -116,4 +113,10 @@ window.addEventListener("load", () => {
 
         requestAnimationFrame(render);
     } requestAnimationFrame(render);
+
+    document.addEventListener("keydown", (event) => {
+        if(event.key == ' '){
+            time.epoch = 0;
+        }
+    });
 });
