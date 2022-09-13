@@ -1,3 +1,6 @@
+const floor = Math.floor;
+const sqrt = Math.sqrt;
+
 function create_shader(gl, type, source){
     const shader = gl.createShader(type);
     gl.shaderSource(shader, source);
@@ -76,9 +79,15 @@ window.addEventListener("load", () => {
     const trans = gl.getUniformLocation(shader, "trans");
     const res = gl.getUniformLocation(shader, "res");
     const utime = gl.getUniformLocation(shader, "utime");
+    const upage = gl.getUniformLocation(shader, "page");
+    const globaltime = gl.getUniformLocation(shader, "globaltime");
+    
+    // current page view
+    let page = 0;
 
     // panel offsets
     let positions = [];
+    let max_pos_time = undefined;
 
     function gen_positions(){
         for(let x = 0; x < w; x += 100){
@@ -86,6 +95,12 @@ window.addEventListener("load", () => {
                 positions.push([x, y]);
             }
         }
+
+        let [x, y] = positions[positions.length - 1];
+        x = floor(x / 100) * 100;
+        y = floor(y / 100) * 100;
+        const dist = sqrt(x * x + y * y);
+        max_pos_time = dist / 1000 + 1;
     }
 
     gen_positions();
@@ -99,12 +114,21 @@ window.addEventListener("load", () => {
 
     function render(timestamp){
         time.dt = (timestamp - time.time) * 0.001;
-        time.epoch += time.dt;
+        time.epoch += time.dt / 2; // animate over 2 seconds
         time.time = timestamp;
 
+        // change epoch
+        if(time.epoch > max_pos_time){
+            time.epoch = undefined;
+            ++page;
+        }
+
+        // render
         gl.useProgram(shader);
         gl.uniform2f(res, w, h);
-        gl.uniform1f(utime, (time.epoch || 0) / 2); // animate for 2 seconds
+        gl.uniform1f(utime, time.epoch || 0);
+        gl.uniform1f(globaltime, time.time / 1000);
+        gl.uniform1i(upage, page);
 
         for(const pos of positions){
             gl.uniform2f(trans, ...pos);
@@ -115,8 +139,21 @@ window.addEventListener("load", () => {
     } requestAnimationFrame(render);
 
     document.addEventListener("keydown", (event) => {
-        if(event.key == ' '){
-            time.epoch = 0;
+        switch(event.key){
+            case ' ':
+                if(!time.epoch){
+                    time.epoch = 0;
+                }
+                break;
+            
+            case 'p':
+                ++page;
+                break;
+            
+            case 'r':
+                page = 0;
+                time.epoch = undefined;
+                break;
         }
     });
 });
