@@ -87,20 +87,62 @@
         </script>
 
         <script type="glsl" id="panel_fragment">
-            precision mediump float;
+            precision highp float;
 
+            uniform highp float globaltime;
             uniform highp vec2 res;
+            uniform int page;
 
             varying vec2 frag_pos;
 
             void main(){
+                // shift time
+                float t = globaltime / 4.0;
+
+                // get screen space position
                 vec2 pos = frag_pos / res;
 
-                if(gl_FrontFacing){
-                    gl_FragColor = vec4(vec3(0.0392156862745098), 1.0);
-                } else {
-                    gl_FragColor = vec4(0.0, pos.x, pos.y, 1.0);
+                // get page id
+                int pid = page;
+                if(!gl_FrontFacing){
+                    pid += 1;
                 }
+
+                // default color
+                vec3 color = vec3(1.0, 0.0, 0.0);
+
+                // set color
+                if(pid == 0){
+                    color = vec3(0.0392156862745098);
+                } else if(pid == 1){
+                    color = vec3(
+                        sin(pos.x + t * 2.0) * cos(pos.y + t),
+                        cos(pos.x + t * 2.0) * sin(pos.y + t),
+                        cos(pos.x - t * 2.0) * sin(pos.y - t)
+                    );
+                } else if(pid == 2){
+                    color = vec3(pos.x, 0.0, pos.y);
+                } else if(pid == 3){
+                    int bar = int(7.0 * frag_pos.y / res.y);
+
+                    if(bar == 0){
+                        color = vec3(0.835,0.176,0.0);
+                    } else if(bar == 1){
+                        color = vec3(0.937,0.463,0.153);
+                    } else if(bar == 2){
+                        color = vec3(1.,0.604,0.337);
+                    } else if(bar == 3){
+                        color = vec3(1.,1.,1.);
+                    } else if(bar == 4){
+                        color = vec3(0.82,0.384,0.643);
+                    } else if(bar == 5){
+                        color = vec3(0.71,0.337,0.565);
+                    } else {
+                        color = vec3(0.639,0.008,0.384);
+                    }
+                }
+
+                gl_FragColor = vec4(color, 1.0);
             }
         </script>
 
